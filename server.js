@@ -60,7 +60,7 @@ async function transcribir(mp3Path) {
     model: 'whisper-large-v3-turbo',
     language: 'es',
   });
-  return respuesta.text;
+  return respuesta.text.trim();
 }
 
 const storage = multer.diskStorage({
