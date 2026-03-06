@@ -1,23 +1,61 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MP4-Transcript</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { sans: ['Montserrat', 'sans-serif'] } } }
+    }
+  </script>
 </head>
-<body>
-  <h1>MP4-Transcript</h1>
+<body class="bg-white font-sans min-h-screen">
 
-  <form id="uploadForm" enctype="multipart/form-data">
-    <input type="file" id="fileInput" name="archivo" accept=".mp4,.mp3" required style="width: 400px;">
-    <button type="submit">Transcribir</button>
-  </form>
+  <!-- Header -->
+  <header class="px-6 py-4 shadow-sm" style="background:#002d40">
+    <h1 class="text-white font-extrabold text-2xl tracking-tight">MP4-Transcript</h1>
+  </header>
 
-  <div id="resultado"></div>
+  <main class="max-w-3xl mx-auto px-4 py-8 space-y-8">
 
-  <hr>
-  <h2>Transcripciones guardadas</h2>
-  <div id="lista"></div>
+    <!-- Panel de subida -->
+    <div class="card bg-base-100 shadow border border-base-200">
+      <div class="card-body">
+        <h2 class="card-title font-bold text-lg" style="color:#002d40">Subir archivo</h2>
+        <form id="uploadForm" enctype="multipart/form-data" class="space-y-4">
+          <input
+            type="file"
+            id="fileInput"
+            name="archivo"
+            accept=".mp4,.mp3"
+            required
+            class="file-input file-input-bordered w-full"
+          >
+          <button
+            type="submit"
+            class="btn rounded-md w-full font-bold text-white"
+            style="background:#002d40; border-color:#002d40"
+          >
+            Transcribir
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Área de estado -->
+    <div id="resultado" class="hidden"></div>
+
+    <!-- Panel de transcripciones -->
+    <div>
+      <h2 class="font-bold text-lg mb-4" style="color:#002d40">Transcripciones guardadas</h2>
+      <div id="lista"></div>
+    </div>
+
+  </main>
 
   <script>
     async function cargarTranscripciones() {
@@ -26,46 +64,59 @@
       const contenedor = document.getElementById('lista');
 
       if (lista.length === 0) {
-        contenedor.innerHTML = '<p>No hay transcripciones guardadas.</p>';
+        contenedor.innerHTML = '<p class="text-gray-400 text-sm">No hay transcripciones guardadas.</p>';
         return;
       }
 
       contenedor.innerHTML = lista.map(t => {
         const fecha = new Date(t.created_at).toLocaleString('es-ES');
-        const estadoIcono = t.status === 'completed' ? '✅ Completado'
-                          : t.status === 'error'     ? '❌ Error'
-                          :                            '⏳ Procesando';
+        const badgeEstado = t.status === 'completed'
+          ? '<span class="badge badge-success font-medium">✅ Completado</span>'
+          : t.status === 'error'
+          ? '<span class="badge badge-error font-medium">❌ Error</span>'
+          : '<span class="badge badge-warning font-medium">⏳ Procesando</span>';
         const preview = t.transcription
-          ? `<p>${t.transcription.slice(0, 200)}${t.transcription.length > 200 ? '…' : ''}</p>`
+          ? `<p class="text-sm text-gray-600 mt-2">${t.transcription.slice(0, 200)}${t.transcription.length > 200 ? '…' : ''}</p>`
           : '';
         const btnVerCompleta = t.transcription
-          ? `<button onclick="verCompleta(${t.id})">Ver completa</button>`
+          ? `<button onclick="verCompleta(${t.id})" class="btn btn-sm btn-outline rounded-md" style="border-color:#002d40; color:#002d40">Ver completa</button>`
           : '';
         const btnCopiar = t.transcription
-          ? `<button onclick="copiar(${t.id})">Copiar</button> <span id="copiado-${t.id}" style="display:none;">¡Copiado!</span>`
+          ? `<button onclick="copiar(${t.id})" class="btn btn-sm btn-outline btn-neutral rounded-md">Copiar</button>
+             <span id="copiado-${t.id}" class="badge badge-success hidden">¡Copiado!</span>`
           : '';
         return `
-          <div id="t-${t.id}" style="border:1px solid #ccc; margin:8px 0; padding:8px;">
-            <strong>${t.filename}</strong> — ${fecha} — ${estadoIcono}
-            ${preview}
-            ${btnVerCompleta}
-            ${btnCopiar}
-            <button onclick="borrar(${t.id})">Borrar</button>
-            <pre id="completa-${t.id}" style="display:none; white-space:pre-wrap;"></pre>
+          <div id="t-${t.id}" class="card bg-base-100 shadow-sm border border-base-200 mb-3">
+            <div class="card-body py-4 px-5">
+              <div class="flex items-start justify-between gap-2 flex-wrap">
+                <div>
+                  <p class="font-bold text-sm" style="color:#002d40">${t.filename}</p>
+                  <p class="text-xs text-gray-400 mt-0.5">${fecha}</p>
+                </div>
+                ${badgeEstado}
+              </div>
+              ${preview}
+              <div class="flex flex-wrap gap-2 mt-3">
+                ${btnVerCompleta}
+                ${btnCopiar}
+                <button onclick="borrar(${t.id})" class="btn btn-sm btn-outline btn-error rounded-md">Borrar</button>
+              </div>
+              <pre id="completa-${t.id}" class="hidden bg-gray-50 rounded-md p-3 text-sm whitespace-pre-wrap text-gray-700 mt-3 leading-relaxed"></pre>
+            </div>
           </div>`;
       }).join('');
     }
 
     async function verCompleta(id) {
       const pre = document.getElementById(`completa-${id}`);
-      if (pre.style.display === 'none') {
+      if (pre.classList.contains('hidden')) {
         const res = await fetch('/transcriptions');
         const lista = await res.json();
         const t = lista.find(x => x.id === id);
         pre.textContent = t.transcription;
-        pre.style.display = 'block';
+        pre.classList.remove('hidden');
       } else {
-        pre.style.display = 'none';
+        pre.classList.add('hidden');
       }
     }
 
@@ -75,8 +126,8 @@
       const t = lista.find(x => x.id === id);
       await navigator.clipboard.writeText(t.transcription);
       const span = document.getElementById(`copiado-${id}`);
-      span.style.display = 'inline';
-      setTimeout(() => { span.style.display = 'none'; }, 2000);
+      span.classList.remove('hidden');
+      setTimeout(() => { span.classList.add('hidden'); }, 2000);
     }
 
     async function borrar(id) {
@@ -89,11 +140,21 @@
       const formData = new FormData();
       formData.append('archivo', document.getElementById('fileInput').files[0]);
 
-      document.getElementById('resultado').textContent = 'Enviando...';
+      const resultado = document.getElementById('resultado');
+      resultado.className = 'alert alert-info text-sm font-medium';
+      resultado.textContent = '⏳ Subiendo y procesando… puede tardar unos segundos.';
 
       const res = await fetch('/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      document.getElementById('resultado').textContent = JSON.stringify(data, null, 2);
+
+      if (data.error) {
+        resultado.className = 'alert alert-error text-sm font-medium';
+        resultado.textContent = '❌ ' + data.error;
+      } else {
+        resultado.className = 'alert alert-success text-sm font-medium';
+        resultado.textContent = `✅ Transcripción completada — ${data.nombre} (${data.tamaño})`;
+      }
+
       cargarTranscripciones();
     });
 
