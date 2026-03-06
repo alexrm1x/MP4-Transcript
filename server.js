@@ -128,6 +128,11 @@ app.get('/transcriptions', (_req, res) => {
   res.json(filas);
 });
 
+app.delete('/transcriptions/:id', (req, res) => {
+  db.prepare('DELETE FROM transcriptions WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });

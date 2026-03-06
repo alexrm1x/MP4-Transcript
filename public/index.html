@@ -15,7 +15,61 @@
 
   <div id="resultado"></div>
 
+  <hr>
+  <h2>Transcripciones guardadas</h2>
+  <div id="lista"></div>
+
   <script>
+    async function cargarTranscripciones() {
+      const res = await fetch('/transcriptions');
+      const lista = await res.json();
+      const contenedor = document.getElementById('lista');
+
+      if (lista.length === 0) {
+        contenedor.innerHTML = '<p>No hay transcripciones guardadas.</p>';
+        return;
+      }
+
+      contenedor.innerHTML = lista.map(t => {
+        const fecha = new Date(t.created_at).toLocaleString('es-ES');
+        const estadoIcono = t.status === 'completed' ? '✅ Completado'
+                          : t.status === 'error'     ? '❌ Error'
+                          :                            '⏳ Procesando';
+        const preview = t.transcription
+          ? `<p>${t.transcription.slice(0, 200)}${t.transcription.length > 200 ? '…' : ''}</p>`
+          : '';
+        const btnVerCompleta = t.transcription
+          ? `<button onclick="verCompleta(${t.id})">Ver completa</button>`
+          : '';
+        return `
+          <div id="t-${t.id}" style="border:1px solid #ccc; margin:8px 0; padding:8px;">
+            <strong>${t.filename}</strong> — ${fecha} — ${estadoIcono}
+            ${preview}
+            ${btnVerCompleta}
+            <button onclick="borrar(${t.id})">Borrar</button>
+            <pre id="completa-${t.id}" style="display:none; white-space:pre-wrap;"></pre>
+          </div>`;
+      }).join('');
+    }
+
+    async function verCompleta(id) {
+      const pre = document.getElementById(`completa-${id}`);
+      if (pre.style.display === 'none') {
+        const res = await fetch('/transcriptions');
+        const lista = await res.json();
+        const t = lista.find(x => x.id === id);
+        pre.textContent = t.transcription;
+        pre.style.display = 'block';
+      } else {
+        pre.style.display = 'none';
+      }
+    }
+
+    async function borrar(id) {
+      await fetch(`/transcriptions/${id}`, { method: 'DELETE' });
+      cargarTranscripciones();
+    }
+
     document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData();
@@ -26,7 +80,10 @@
       const res = await fetch('/upload', { method: 'POST', body: formData });
       const data = await res.json();
       document.getElementById('resultado').textContent = JSON.stringify(data, null, 2);
+      cargarTranscripciones();
     });
+
+    cargarTranscripciones();
   </script>
 </body>
 </html>
