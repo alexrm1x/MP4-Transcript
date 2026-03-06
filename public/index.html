@@ -25,7 +25,7 @@
     <!-- Panel de subida -->
     <div class="card bg-base-100 shadow border border-base-200">
       <div class="card-body">
-        <h2 class="card-title font-bold text-lg" style="color:#002d40">Subir archivo</h2>
+        <h2 class="card-title font-bold text-lg" style="color:#002d40">Subir archivos</h2>
         <form id="uploadForm" enctype="multipart/form-data" class="space-y-4">
           <input
             type="file"
@@ -33,6 +33,7 @@
             name="archivo"
             accept=".mp4,.mp3"
             required
+            multiple
             class="file-input file-input-bordered w-full"
           >
           <button
@@ -137,25 +138,42 @@
 
     document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const formData = new FormData();
-      formData.append('archivo', document.getElementById('fileInput').files[0]);
+      const archivos = Array.from(document.getElementById('fileInput').files);
+      if (archivos.length === 0) return;
 
       const resultado = document.getElementById('resultado');
-      resultado.className = 'alert alert-info text-sm font-medium';
-      resultado.textContent = '⏳ Subiendo y procesando… puede tardar unos segundos.';
+      let completados = 0;
+      let errores = 0;
 
-      const res = await fetch('/upload', { method: 'POST', body: formData });
-      const data = await res.json();
+      for (let i = 0; i < archivos.length; i++) {
+        resultado.className = 'alert alert-info text-sm font-medium';
+        resultado.textContent = `⏳ Procesando ${i + 1} de ${archivos.length}: ${archivos[i].name}`;
 
-      if (data.error) {
-        resultado.className = 'alert alert-error text-sm font-medium';
-        resultado.textContent = '❌ ' + data.error;
-      } else {
-        resultado.className = 'alert alert-success text-sm font-medium';
-        resultado.textContent = `✅ Transcripción completada — ${data.nombre} (${data.tamaño})`;
+        const formData = new FormData();
+        formData.append('archivo', archivos[i]);
+
+        try {
+          const res = await fetch('/upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (data.error) {
+            errores++;
+          } else {
+            completados++;
+          }
+        } catch {
+          errores++;
+        }
+
+        cargarTranscripciones();
       }
 
-      cargarTranscripciones();
+      if (errores === 0) {
+        resultado.className = 'alert alert-success text-sm font-medium';
+        resultado.textContent = `✅ Cola completada: ${completados} archivo${completados !== 1 ? 's' : ''} transcritos.`;
+      } else {
+        resultado.className = 'alert alert-warning text-sm font-medium';
+        resultado.textContent = `⚠️ Cola completada: ${completados} completados, ${errores} con error.`;
+      }
     });
 
     cargarTranscripciones();
