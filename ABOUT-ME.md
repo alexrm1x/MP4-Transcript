@@ -1,0 +1,4 @@
+- Sé: HTML, CSS, JavaScript, algo de Node y Express. También algo de SQL.
+- Aprendiendo: Git, Claude Code, SQLite, APIs REST
+- No sé: Python, bases de datos avanzadas
+- Prefiero: explicaciones paso a paso, comandos explicados
