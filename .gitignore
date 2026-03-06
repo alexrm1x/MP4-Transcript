@@ -1,0 +1,5 @@
+.env
+uploads/
+ABOUT-ME.md
+transcriptions.db
+node_modules/
