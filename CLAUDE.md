@@ -40,3 +40,7 @@ Tabla `transcriptions` con estos campos:
 - Windows 11 con PowerShell
 - VS Code con Claude Code
 - Despliegue final: servidor Debian en clouding.io
+
+## Archivos que nunca debes tocar
+- .env
+- .gitignore
