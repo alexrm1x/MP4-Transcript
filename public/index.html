@@ -41,11 +41,15 @@
         const btnVerCompleta = t.transcription
           ? `<button onclick="verCompleta(${t.id})">Ver completa</button>`
           : '';
+        const btnCopiar = t.transcription
+          ? `<button onclick="copiar(${t.id})">Copiar</button> <span id="copiado-${t.id}" style="display:none;">¡Copiado!</span>`
+          : '';
         return `
           <div id="t-${t.id}" style="border:1px solid #ccc; margin:8px 0; padding:8px;">
             <strong>${t.filename}</strong> — ${fecha} — ${estadoIcono}
             ${preview}
             ${btnVerCompleta}
+            ${btnCopiar}
             <button onclick="borrar(${t.id})">Borrar</button>
             <pre id="completa-${t.id}" style="display:none; white-space:pre-wrap;"></pre>
           </div>`;
@@ -63,6 +67,16 @@
       } else {
         pre.style.display = 'none';
       }
+    }
+
+    async function copiar(id) {
+      const res = await fetch('/transcriptions');
+      const lista = await res.json();
+      const t = lista.find(x => x.id === id);
+      await navigator.clipboard.writeText(t.transcription);
+      const span = document.getElementById(`copiado-${id}`);
+      span.style.display = 'inline';
+      setTimeout(() => { span.style.display = 'none'; }, 2000);
     }
 
     async function borrar(id) {
