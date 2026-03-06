@@ -59,6 +59,13 @@
   </main>
 
   <script>
+    function formatearDuracion(seg) {
+      if (!seg) return '';
+      const m = Math.floor(seg / 60).toString().padStart(2, '0');
+      const s = (seg % 60).toString().padStart(2, '0');
+      return `${m}:${s} min`;
+    }
+
     async function cargarTranscripciones() {
       const res = await fetch('/transcriptions');
       const lista = await res.json();
@@ -96,6 +103,7 @@
                 </div>
                 ${badgeEstado}
               </div>
+              ${t.status === 'completed' && t.duration_seconds ? `<p class="text-xs text-gray-400 mt-1">⏱ ${formatearDuracion(t.duration_seconds)}${t.completed_at ? ' · Procesado en ' + Math.round((new Date(t.completed_at) - new Date(t.created_at)) / 1000) + ' segundos' : ''}</p>` : ''}
               ${preview}
               <div class="flex flex-wrap gap-2 mt-3">
                 ${btnVerCompleta}

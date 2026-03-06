@@ -15,4 +15,8 @@ db.exec(`
   )
 `);
 
+try {
+  db.exec('ALTER TABLE transcriptions ADD COLUMN duration_seconds INTEGER');
+} catch {}
+
 module.exports = db;

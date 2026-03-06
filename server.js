@@ -5,10 +5,12 @@ const fs = require('fs');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
 const Groq = require('groq-sdk');
 const db = require('./database');
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+ffmpeg.setFfprobePath(ffprobeInstaller.path);
 
 const app = express();
 const PORT = 3000;
@@ -21,8 +23,17 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const insertarTranscripcion = db.prepare(
-  'INSERT INTO transcriptions (filename, status, created_at) VALUES (?, ?, ?)'
+  'INSERT INTO transcriptions (filename, status, created_at, duration_seconds) VALUES (?, ?, ?, ?)'
 );
+
+function obtenerDuracion(filePath) {
+  return new Promise((resolve) => {
+    ffmpeg.ffprobe(filePath, (err, metadata) => {
+      if (err) return resolve(null);
+      resolve(Math.round(metadata.format.duration) || null);
+    });
+  });
+}
 const actualizarCompletada = db.prepare(
   'UPDATE transcriptions SET status = ?, transcription = ?, completed_at = ? WHERE id = ?'
 );
@@ -65,7 +76,8 @@ app.post('/upload', upload.single('archivo'), async (req, res) => {
   const esMP4 = path.extname(archivoSubido.filename).toLowerCase() === '.mp4';
   const nombreOriginal = decodificarNombre(archivoSubido.originalname);
 
-  const registro = insertarTranscripcion.run(nombreOriginal, 'processing', new Date().toISOString());
+  const duracion = await obtenerDuracion(archivoSubido.path);
+  const registro = insertarTranscripcion.run(nombreOriginal, 'processing', new Date().toISOString(), duracion);
   const registroId = registro.lastInsertRowid;
 
   if (!esMP4) {
