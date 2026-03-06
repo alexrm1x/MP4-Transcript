@@ -69,7 +69,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/upload', upload.single('archivo'), async (req, res) => {
   const archivoSubido = req.file;
