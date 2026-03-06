@@ -1,8 +1,14 @@
 <!DOCTYPE html>
 <html lang="es" data-theme="light">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:title" content="MP4-Transcript">
+  <meta property="og:description" content="Transcribe tus vídeos MP4 y audios MP3 a texto en español automáticamente">
+  <meta property="og:url" content="https://debian13.linkedinlocal.es">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://debian13.linkedinlocal.es/og-image.png">
   <title>MP4-Transcript</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
@@ -13,36 +19,28 @@
     }
   </script>
 </head>
+
 <body class="bg-white font-sans min-h-screen">
 
   <!-- Header -->
   <header class="px-6 py-4 shadow-sm" style="background:#002d40">
     <h1 class="text-center text-white font-extrabold text-2xl tracking-tight">MP4-Transcript</h1>
-    <h2 class="text-center text-white font-bold text-sm tracking-tight">Created by Alejandro Guerrero (Tinku) & Claude Code</h2>
+    <h2 class="text-center text-white font-bold text-sm tracking-tight">Created by Alejandro Guerrero (Tinku) & Claude
+      Code</h2>
   </header>
 
   <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
-    
+
 
     <!-- Panel de subida -->
     <div class="card bg-base-100 shadow border border-base-200">
       <div class="card-body">
         <h2 class="card-title font-bold text-lg" style="color:#002d40">Subir archivos</h2>
         <form id="uploadForm" enctype="multipart/form-data" class="space-y-4">
-          <input
-            type="file"
-            id="fileInput"
-            name="archivo"
-            accept=".mp4,.mp3"
-            required
-            multiple
-            class="file-input file-input-bordered w-full"
-          >
-          <button
-            type="submit"
-            class="btn rounded-md w-full font-bold text-white"
-            style="background:#002d40; border-color:#002d40"
-          >
+          <input type="file" id="fileInput" name="archivo" accept=".mp4,.mp3" required multiple
+            class="file-input file-input-bordered w-full">
+          <button type="submit" class="btn rounded-md w-full font-bold text-white"
+            style="background:#002d40; border-color:#002d40">
             Transcribir
           </button>
         </form>
@@ -83,8 +81,8 @@
         const badgeEstado = t.status === 'completed'
           ? '<span class="badge badge-success font-medium">✅ Completado</span>'
           : t.status === 'error'
-          ? '<span class="badge badge-error font-medium">❌ Error</span>'
-          : '<span class="badge badge-warning font-medium">⏳ Procesando</span>';
+            ? '<span class="badge badge-error font-medium">❌ Error</span>'
+            : '<span class="badge badge-warning font-medium">⏳ Procesando</span>';
         const preview = t.transcription
           ? `<p class="text-sm text-gray-600 mt-2">${t.transcription.slice(0, 500)}${t.transcription.length > 200 ? '…' : ''}</p>`
           : '';
@@ -189,4 +187,5 @@
     cargarTranscripciones();
   </script>
 </body>
+
 </html>
