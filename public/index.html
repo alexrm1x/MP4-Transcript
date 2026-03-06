@@ -8,11 +8,25 @@
 <body>
   <h1>MP4-Transcript</h1>
 
-  <form id="uploadForm">
-    <input type="file" id="fileInput" accept=".mp4,.mp3" required>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" id="fileInput" name="archivo" accept=".mp4,.mp3" required style="width: 400px;">
     <button type="submit">Transcribir</button>
   </form>
 
   <div id="resultado"></div>
+
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('archivo', document.getElementById('fileInput').files[0]);
+
+      document.getElementById('resultado').textContent = 'Enviando...';
+
+      const res = await fetch('/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      document.getElementById('resultado').textContent = JSON.stringify(data, null, 2);
+    });
+  </script>
 </body>
 </html>
