@@ -6,6 +6,7 @@ const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 const Groq = require('groq-sdk');
+const db = require('./database');
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
@@ -18,6 +19,16 @@ const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+const insertarTranscripcion = db.prepare(
+  'INSERT INTO transcriptions (filename, status, created_at) VALUES (?, ?, ?)'
+);
+const actualizarCompletada = db.prepare(
+  'UPDATE transcriptions SET status = ?, transcription = ?, completed_at = ? WHERE id = ?'
+);
+const actualizarError = db.prepare(
+  'UPDATE transcriptions SET status = ?, error_message = ? WHERE id = ?'
+);
 
 function decodificarNombre(nombre) {
   return Buffer.from(nombre, 'latin1').toString('utf8');
@@ -54,19 +65,25 @@ app.post('/upload', upload.single('archivo'), async (req, res) => {
   const esMP4 = path.extname(archivoSubido.filename).toLowerCase() === '.mp4';
   const nombreOriginal = decodificarNombre(archivoSubido.originalname);
 
+  const registro = insertarTranscripcion.run(nombreOriginal, 'processing', new Date().toISOString());
+  const registroId = registro.lastInsertRowid;
+
   if (!esMP4) {
     if (archivoSubido.size > LIMITE_BYTES) {
       fs.unlinkSync(archivoSubido.path);
+      actualizarError.run('error', `El archivo supera el límite de ${LIMITE_MB}MB`, registroId);
       return res.status(400).json({ error: `El archivo supera el límite de ${LIMITE_MB}MB` });
     }
     const mp3Path = archivoSubido.path;
     try {
       const transcripcion = await transcribir(mp3Path);
       fs.unlinkSync(mp3Path);
+      actualizarCompletada.run('completed', transcripcion, new Date().toISOString(), registroId);
       const mb = (archivoSubido.size / (1024 * 1024)).toFixed(1) + ' MB';
-      return res.json({ convertido: false, nombre: nombreOriginal, tamaño: mb, transcripcion });
+      return res.json({ id: registroId, convertido: false, nombre: nombreOriginal, tamaño: mb, transcripcion });
     } catch (err) {
       fs.unlinkSync(mp3Path);
+      actualizarError.run('error', err.message, registroId);
       return res.status(500).json({ error: 'Error al transcribir: ' + err.message });
     }
   }
@@ -83,23 +100,32 @@ app.post('/upload', upload.single('archivo'), async (req, res) => {
       const mp3Size = fs.statSync(mp3Path).size;
       if (mp3Size > LIMITE_BYTES) {
         fs.unlinkSync(mp3Path);
+        actualizarError.run('error', `El archivo supera el límite de ${LIMITE_MB}MB tras la conversión`, registroId);
         return res.status(400).json({ error: `El archivo supera el límite de ${LIMITE_MB}MB tras la conversión` });
       }
       try {
         const transcripcion = await transcribir(mp3Path);
         fs.unlinkSync(mp3Path);
+        actualizarCompletada.run('completed', transcripcion, new Date().toISOString(), registroId);
         const mb = (mp3Size / (1024 * 1024)).toFixed(1) + ' MB';
-        res.json({ convertido: true, nombre: nombreOriginal, tamaño: mb, transcripcion });
+        res.json({ id: registroId, convertido: true, nombre: nombreOriginal, tamaño: mb, transcripcion });
       } catch (err) {
         fs.unlinkSync(mp3Path);
+        actualizarError.run('error', err.message, registroId);
         res.status(500).json({ error: 'Error al transcribir: ' + err.message });
       }
     })
     .on('error', (err) => {
       fs.unlinkSync(archivoSubido.path);
+      actualizarError.run('error', err.message, registroId);
       res.status(500).json({ error: 'Error al convertir el archivo: ' + err.message });
     })
     .run();
+});
+
+app.get('/transcriptions', (_req, res) => {
+  const filas = db.prepare('SELECT * FROM transcriptions ORDER BY created_at DESC').all();
+  res.json(filas);
 });
 
 app.listen(PORT, () => {
