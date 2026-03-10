@@ -49,6 +49,7 @@
 
     <!-- Área de estado -->
     <div id="resultado" class="hidden"></div>
+    <div id="erroresDetalle" class="mt-2"></div>
 
     <!-- Panel de transcripciones -->
     <div>
@@ -150,8 +151,12 @@
       if (archivos.length === 0) return;
 
       const resultado = document.getElementById('resultado');
+      const erroresEl = document.getElementById('erroresDetalle');
       let completados = 0;
       let errores = 0;
+      let erroresDetalle = [];
+
+      erroresEl.innerHTML = '';
 
       for (let i = 0; i < archivos.length; i++) {
         resultado.className = 'alert alert-info text-sm font-medium';
@@ -165,11 +170,13 @@
           const data = await res.json();
           if (data.error) {
             errores++;
+            erroresDetalle.push({ nombre: archivos[i].name, mensaje: data.error });
           } else {
             completados++;
           }
         } catch {
           errores++;
+          erroresDetalle.push({ nombre: archivos[i].name, mensaje: 'Error de conexión' });
         }
 
         cargarTranscripciones();
@@ -182,6 +189,13 @@
         resultado.className = 'alert alert-warning text-sm font-medium';
         resultado.textContent = `⚠️ Cola completada: ${completados} completados, ${errores} con error.`;
       }
+
+      erroresDetalle.forEach(({ nombre, mensaje }) => {
+        const p = document.createElement('p');
+        p.className = 'text-red-600 text-sm mt-1';
+        p.textContent = `❌ ${nombre}: ${mensaje}`;
+        erroresEl.appendChild(p);
+      });
     });
 
     cargarTranscripciones();
