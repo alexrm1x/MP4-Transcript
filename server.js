@@ -145,6 +145,10 @@ app.delete('/transcriptions/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-app.listen(PORT, () => {
+/* app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+}); */
+
+app.listen(PORT, '127.0.0.1', () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
