@@ -54,12 +54,27 @@ function sanitizarNombre(nombre) {
     .replace(/[^a-zA-Z0-9._-]/g, '');
 }
 
-async function transcribir(mp3Path) {
+function formatearTiempo(seg) {
+  const s = Math.floor(seg % 60).toString().padStart(2, '0');
+  const m = Math.floor((seg / 60) % 60).toString().padStart(2, '0');
+  const h = Math.floor(seg / 3600);
+  return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
+}
+
+async function transcribir(mp3Path, conTimestamps = false) {
   const respuesta = await groq.audio.transcriptions.create({
     file: fs.createReadStream(mp3Path),
     model: 'whisper-large-v3-turbo',
     language: 'es',
+    response_format: conTimestamps ? 'verbose_json' : 'json',
+    ...(conTimestamps && { timestamp_granularities: ['segment'] }),
   });
+
+  if (conTimestamps && Array.isArray(respuesta.segments)) {
+    return respuesta.segments
+      .map((s) => `[${formatearTiempo(s.start)}] ${s.text.trim()}`)
+      .join('\n');
+  }
   return respuesta.text.trim();
 }
 
@@ -75,6 +90,7 @@ app.post('/upload', upload.single('archivo'), async (req, res) => {
   const archivoSubido = req.file;
   const esMP4 = path.extname(archivoSubido.filename).toLowerCase() === '.mp4';
   const nombreOriginal = decodificarNombre(archivoSubido.originalname);
+  const conTimestamps = req.body.timestamps === 'true';
 
   const duracion = await obtenerDuracion(archivoSubido.path);
   const registro = insertarTranscripcion.run(nombreOriginal, 'processing', new Date().toISOString(), duracion);
@@ -88,7 +104,7 @@ app.post('/upload', upload.single('archivo'), async (req, res) => {
     }
     const mp3Path = archivoSubido.path;
     try {
-      const transcripcion = await transcribir(mp3Path);
+      const transcripcion = await transcribir(mp3Path, conTimestamps);
       fs.unlinkSync(mp3Path);
       actualizarCompletada.run('completed', transcripcion, new Date().toISOString(), registroId);
       const mb = (archivoSubido.size / (1024 * 1024)).toFixed(1) + ' MB';
@@ -116,7 +132,7 @@ app.post('/upload', upload.single('archivo'), async (req, res) => {
         return res.status(400).json({ error: `El archivo supera el límite de ${LIMITE_MB}MB tras la conversión` });
       }
       try {
-        const transcripcion = await transcribir(mp3Path);
+        const transcripcion = await transcribir(mp3Path, conTimestamps);
         fs.unlinkSync(mp3Path);
         actualizarCompletada.run('completed', transcripcion, new Date().toISOString(), registroId);
         const mb = (mp3Size / (1024 * 1024)).toFixed(1) + ' MB';

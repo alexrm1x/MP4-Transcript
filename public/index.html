@@ -39,6 +39,11 @@
         <form id="uploadForm" enctype="multipart/form-data" class="space-y-4">
           <input type="file" id="fileInput" name="archivo" accept=".mp4,.mp3" required multiple
             class="file-input file-input-bordered w-full">
+          <label class="label cursor-pointer justify-start gap-3">
+            <input type="checkbox" id="timestampsInput" class="checkbox checkbox-sm"
+              style="border-color:#002d40">
+            <span class="label-text font-medium">🕒 Incluir marcas de tiempo</span>
+          </label>
           <button type="submit" class="btn rounded-md w-full font-bold text-white"
             style="background:#002d40; border-color:#002d40">
             Transcribir
@@ -149,6 +154,7 @@
       e.preventDefault();
       const archivos = Array.from(document.getElementById('fileInput').files);
       if (archivos.length === 0) return;
+      const conTimestamps = document.getElementById('timestampsInput').checked;
 
       const resultado = document.getElementById('resultado');
       const erroresEl = document.getElementById('erroresDetalle');
@@ -164,6 +170,7 @@
 
         const formData = new FormData();
         formData.append('archivo', archivos[i]);
+        formData.append('timestamps', conTimestamps);
 
         try {
           const res = await fetch('/upload', { method: 'POST', body: formData });
