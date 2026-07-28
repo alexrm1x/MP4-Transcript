@@ -37,7 +37,7 @@
       <div class="card-body">
         <h2 class="card-title font-bold text-lg" style="color:#002d40">Subir archivos</h2>
         <form id="uploadForm" enctype="multipart/form-data" class="space-y-4">
-          <input type="file" id="fileInput" name="archivo" accept=".mp4,.mp3" required multiple
+          <input type="file" id="fileInput" name="archivo" accept=".mp4,.mp3,.m4a,.wav" required multiple
             class="file-input file-input-bordered w-full">
           <label class="label cursor-pointer justify-start gap-3">
             <input type="checkbox" id="timestampsInput" class="checkbox checkbox-sm"
@@ -70,6 +70,22 @@
       const m = Math.floor(seg / 60).toString().padStart(2, '0');
       const s = (seg % 60).toString().padStart(2, '0');
       return `${m}:${s} min`;
+    }
+
+    function construirEstado(i, total, nombre, formatoLocal, p) {
+      let msg = `⏳ Procesando ${i + 1} de ${total}: ${nombre}`;
+      const detalles = [];
+      const formato = (p && p.formato) || formatoLocal;
+      if (formato) detalles.push(formato);
+      if (p && p.duracionSeg) detalles.push(formatearDuracion(p.duracionSeg));
+      if (p && p.bitrateKbps) detalles.push(`${p.bitrateKbps} kbps`);
+      if (detalles.length) msg += ` (${detalles.join(' · ')})`;
+      if (p && p.fase === 'convirtiendo') {
+        msg += ' — 🎞️ convirtiendo a audio…';
+      } else if (p && p.totalTrozos > 1) {
+        msg += ` — ✂️ trozo ${p.trozoActual} de ${p.totalTrozos}`;
+      }
+      return msg;
     }
 
     async function cargarTranscripciones() {
@@ -165,12 +181,24 @@
       erroresEl.innerHTML = '';
 
       for (let i = 0; i < archivos.length; i++) {
+        const jobId = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now() + '-' + i);
+        const formatoLocal = archivos[i].name.split('.').pop().toUpperCase();
+
         resultado.className = 'alert alert-info text-sm font-medium';
-        resultado.textContent = `⏳ Procesando ${i + 1} de ${archivos.length}: ${archivos[i].name}`;
+        resultado.textContent = construirEstado(i, archivos.length, archivos[i].name, formatoLocal, null);
+
+        const intervalo = setInterval(async () => {
+          try {
+            const r = await fetch('/progress/' + jobId);
+            const p = await r.json();
+            resultado.textContent = construirEstado(i, archivos.length, archivos[i].name, formatoLocal, p);
+          } catch { /* ignorar fallos puntuales de polling */ }
+        }, 1500);
 
         const formData = new FormData();
         formData.append('archivo', archivos[i]);
         formData.append('timestamps', conTimestamps);
+        formData.append('jobId', jobId);
 
         try {
           const res = await fetch('/upload', { method: 'POST', body: formData });
@@ -184,6 +212,8 @@
         } catch {
           errores++;
           erroresDetalle.push({ nombre: archivos[i].name, mensaje: 'Error de conexión' });
+        } finally {
+          clearInterval(intervalo);
         }
 
         cargarTranscripciones();

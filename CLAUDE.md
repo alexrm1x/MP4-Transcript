@@ -16,9 +16,11 @@ y guardar las transcripciones en una base de datos SQLite.
 - Todo el código en JavaScript, nunca Python
 - Idioma de transcripción: español forzado
 - Puerto: 3000
-- Archivos aceptados: MP4 y MP3
+- Archivos aceptados: MP4, MP3, M4A y WAV
 - Calidad de conversión MP4 a MP3: 128kbps
-- Límite de archivo: 25MB — rechazar con mensaje de error si se supera
+- Límite de Groq por archivo: 25MB. Los archivos mayores se dividen automáticamente
+  en trozos por duración (objetivo 24MB/trozo con ffmpeg), se transcriben en orden
+  y se unen en una sola transcripción (ajustando las marcas de tiempo)
 - Los archivos subidos se guardan temporalmente en /uploads
 - Borrar siempre los archivos temporales tras transcribir
 
