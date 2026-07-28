@@ -8,6 +8,7 @@ const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
 const Groq = require('groq-sdk');
 const db = require('./database');
+const { version: APP_VERSION } = require('./package.json');
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 ffmpeg.setFfprobePath(ffprobeInstaller.path);
@@ -224,6 +225,10 @@ app.get('/progress/:id', (req, res) => {
   res.json(progreso.get(req.params.id) || {});
 });
 
+app.get('/version', (_req, res) => {
+  res.json({ version: APP_VERSION });
+});
+
 app.get('/transcriptions', (_req, res) => {
   const filas = db.prepare('SELECT * FROM transcriptions ORDER BY created_at DESC').all();
   res.json(filas);
@@ -239,5 +244,5 @@ app.delete('/transcriptions/:id', (req, res) => {
 }); */
 
 app.listen(PORT, '127.0.0.1', () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`MP4-Transcript v${APP_VERSION} corriendo en http://localhost:${PORT}`);
 });
